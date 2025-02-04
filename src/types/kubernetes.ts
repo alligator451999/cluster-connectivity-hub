@@ -6,27 +6,34 @@ export interface Cluster {
 }
 
 export interface KubernetesResource {
+  id: string;
+  cluster_id: string;
+  kind: string;
   name: string;
   namespace: string;
-  kind: string;
+  spec: any;
   status: string;
   created_at: string;
-  cluster_id: string;
 }
 
 export interface HelmRelease {
+  id: string;
+  cluster_id: string;
   name: string;
   namespace: string;
   chart: string;
   version: string;
+  values: any;
   status: string;
-  cluster_id: string;
+  created_at: string;
 }
 
 export interface ClusterMetrics {
+  id: string;
+  cluster_id: string;
   cpu_usage: number;
   memory_usage: number;
   pod_count: number;
   node_count: number;
-  cluster_id: string;
+  timestamp: string;
 }

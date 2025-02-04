@@ -17,10 +17,20 @@ export const kubernetesApi = {
   async getClusters(): Promise<Cluster[]> {
     const { data, error } = await supabase
       .from('clusters')
-      .select('*');
+      .select('*')
+      .order('created_at', { ascending: false });
     
     if (error) throw error;
     return data;
+  },
+
+  async deleteCluster(id: string): Promise<void> {
+    const { error } = await supabase
+      .from('clusters')
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw error;
   },
 
   // Resource Management
@@ -28,13 +38,14 @@ export const kubernetesApi = {
     const { data, error } = await supabase
       .from('kubernetes_resources')
       .select('*')
-      .eq('cluster_id', clusterId);
+      .eq('cluster_id', clusterId)
+      .order('created_at', { ascending: false });
     
     if (error) throw error;
     return data;
   },
 
-  async updateResource(
+  async createResource(
     clusterId: string,
     kind: string,
     name: string,
@@ -43,8 +54,36 @@ export const kubernetesApi = {
   ): Promise<void> {
     const { error } = await supabase
       .from('kubernetes_resources')
-      .update({ spec })
-      .match({ cluster_id: clusterId, kind, name, namespace });
+      .insert([{
+        cluster_id: clusterId,
+        kind,
+        name,
+        namespace,
+        spec,
+        status: 'Pending'
+      }]);
+    
+    if (error) throw error;
+  },
+
+  async updateResource(
+    id: string,
+    spec: any,
+    status: string
+  ): Promise<void> {
+    const { error } = await supabase
+      .from('kubernetes_resources')
+      .update({ spec, status })
+      .eq('id', id);
+    
+    if (error) throw error;
+  },
+
+  async deleteResource(id: string): Promise<void> {
+    const { error } = await supabase
+      .from('kubernetes_resources')
+      .delete()
+      .eq('id', id);
     
     if (error) throw error;
   },
@@ -53,6 +92,7 @@ export const kubernetesApi = {
   async installHelmChart(
     clusterId: string,
     name: string,
+    namespace: string,
     chart: string,
     version: string,
     values: any
@@ -62,10 +102,11 @@ export const kubernetesApi = {
       .insert([{
         cluster_id: clusterId,
         name,
+        namespace,
         chart,
         version,
         values,
-        status: 'pending'
+        status: 'Pending'
       }]);
     
     if (error) throw error;
@@ -75,10 +116,33 @@ export const kubernetesApi = {
     const { data, error } = await supabase
       .from('helm_releases')
       .select('*')
-      .eq('cluster_id', clusterId);
+      .eq('cluster_id', clusterId)
+      .order('created_at', { ascending: false });
     
     if (error) throw error;
     return data;
+  },
+
+  async updateHelmRelease(
+    id: string,
+    values: any,
+    status: string
+  ): Promise<void> {
+    const { error } = await supabase
+      .from('helm_releases')
+      .update({ values, status })
+      .eq('id', id);
+    
+    if (error) throw error;
+  },
+
+  async deleteHelmRelease(id: string): Promise<void> {
+    const { error } = await supabase
+      .from('helm_releases')
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw error;
   },
 
   // Metrics
@@ -87,9 +151,25 @@ export const kubernetesApi = {
       .from('cluster_metrics')
       .select('*')
       .eq('cluster_id', clusterId)
+      .order('timestamp', { ascending: false })
+      .limit(1)
       .single();
     
     if (error) throw error;
     return data;
+  },
+
+  async updateClusterMetrics(
+    clusterId: string,
+    metrics: Omit<ClusterMetrics, 'cluster_id' | 'timestamp'>
+  ): Promise<void> {
+    const { error } = await supabase
+      .from('cluster_metrics')
+      .insert([{
+        cluster_id: clusterId,
+        ...metrics
+      }]);
+    
+    if (error) throw error;
   }
 };

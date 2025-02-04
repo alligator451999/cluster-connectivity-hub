@@ -2,6 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { kubernetesApi } from "@/services/kubernetes";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { ResourceList } from "./ResourceList";
+import { HelmReleases } from "./HelmReleases";
 
 export function Dashboard() {
   const { data: clusters } = useQuery({
@@ -12,51 +14,56 @@ export function Dashboard() {
   const { data: metrics } = useQuery({
     queryKey: ['metrics', clusters?.[0]?.id],
     queryFn: () => clusters?.[0]?.id ? kubernetesApi.getClusterMetrics(clusters[0].id) : null,
-    enabled: !!clusters?.[0]?.id
+    enabled: !!clusters?.[0]?.id,
+    refetchInterval: 30000 // Refresh every 30 seconds
   });
 
+  const currentClusterId = clusters?.[0]?.id;
+
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-      <Card>
-        <CardHeader>
-          <CardTitle>CPU Usage</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{metrics?.cpu_usage}%</div>
-        </CardContent>
-      </Card>
+    <div className="space-y-6">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader>
+            <CardTitle>CPU Usage</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{metrics?.cpu_usage}%</div>
+          </CardContent>
+        </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Memory Usage</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{metrics?.memory_usage}%</div>
-        </CardContent>
-      </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Memory Usage</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{metrics?.memory_usage}%</div>
+          </CardContent>
+        </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Pods</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{metrics?.pod_count}</div>
-        </CardContent>
-      </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Pods</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{metrics?.pod_count}</div>
+          </CardContent>
+        </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Nodes</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{metrics?.node_count}</div>
-        </CardContent>
-      </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Nodes</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{metrics?.node_count}</div>
+          </CardContent>
+        </Card>
+      </div>
 
       {metrics && (
-        <Card className="col-span-full">
+        <Card>
           <CardHeader>
-            <CardTitle>Resource Usage Over Time</CardTitle>
+            <CardTitle>Resource Usage</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="h-[300px]">
@@ -81,6 +88,28 @@ export function Dashboard() {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {currentClusterId && (
+        <>
+          <Card>
+            <CardHeader>
+              <CardTitle>Kubernetes Resources</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResourceList clusterId={currentClusterId} />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Helm Releases</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <HelmReleases clusterId={currentClusterId} />
+            </CardContent>
+          </Card>
+        </>
       )}
     </div>
   );
